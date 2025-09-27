@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>stm_converter.parser &mdash; CPP structs to ROS msg generator 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> CPP structs to ROS msg generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">STM Converter</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CPP structs to ROS msg generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>stm_converter.parser</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for stm_converter.parser</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Parser module for extracting ROS 2 message specifications from C++ structs/classes.</span>
+
+<span class="sd">This module uses `pygccxml` to parse C++ header files and extract message definitions.</span>
+<span class="sd">It converts C++ types to ROS 2 message types, handles nested/non-primitive types,</span>
+<span class="sd">and returns ROS 2 compatible `MessageSpecification` objects.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">pygccxml</span> <span class="kn">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">pygccxml</span> <span class="kn">import</span> <span class="n">declarations</span>
+<span class="kn">from</span> <span class="nn">pygccxml</span> <span class="kn">import</span> <span class="n">parser</span>
+
+<span class="kn">from</span> <span class="nn">rosidl_adapter.parser</span> <span class="kn">import</span> <span class="n">MessageSpecification</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Field</span>
+<span class="kn">import</span> <span class="nn">ros2interface.api</span> <span class="k">as</span> <span class="nn">interface</span>
+
+<span class="kn">from</span> <span class="nn">stm_converter.utils</span> <span class="kn">import</span> <span class="n">generate_msg_name</span><span class="p">,</span> <span class="n">process_non_primitives</span>
+<span class="kn">from</span> <span class="nn">stm_converter.utils</span> <span class="kn">import</span> <span class="n">DECLARATION_PREFIX</span><span class="p">,</span> <span class="n">VECTOR_TYPE_PREFIX</span><span class="p">,</span> <span class="n">VECTOR_TYPE_SUFFIX</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<div class="viewcode-block" id="Parser"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.parser.Parser">[docs]</a><span class="k">class</span> <span class="nc">Parser</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parses C++ header files into ROS 2 `MessageSpecification` objects.</span>
+
+<span class="sd">    This class:</span>
+<span class="sd">        - Uses `pygccxml` to generate and parse Abstract Syntax Tree (XML representations) of C++ code.</span>
+<span class="sd">        - Extracts C++ structs as ROS 2 messages.</span>
+<span class="sd">        - Maps C++ primitive types to ROS 2 primitive types.</span>
+<span class="sd">        - Resolves dependencies by checking existing/autogenerated ROS 2 message packages.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        - ``filename`` (str): Path to the C++ header file.</span>
+<span class="sd">        - ``namespace`` (str): User namespace to parse. If empty, uses the last namespace found.</span>
+<span class="sd">        - ``pkg_name`` (str): ROS package name for generated messages.</span>
+<span class="sd">        - ``deps`` (list): list of dependent ROS packages.</span>
+<span class="sd">        - ``ns``: Parsed `pygccxml` namespace object.</span>
+<span class="sd">        - ``user_ns`` (str): Name of the detected (last found) namespace if not provided.</span>
+<span class="sd">        - ``struct_name`` (list[str]): List of struct names found.</span>
+<span class="sd">        - ``msg_interfaces`` (dict): Mapping of package that generate interfaces -&gt; available message interfaces from dependencies.</span>
+<span class="sd">        - ``builtin_interface_pkgs`` (dict): Mapping of builtin packages that generate interfaces -&gt; path to msg.</span>
+<span class="sd">        - ``decls``: Parsed pygccxml declarations.</span>
+<span class="sd">        - ``global_namespace``: Root `pygccxml` namespace object.</span>
+<span class="sd">        - ``namespaces`` (list): All top-level namespaces in the file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">pkg_name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">dependencies</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the Parser with file and package details.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename (str): Path to the C++ header file to parse.</span>
+<span class="sd">            pkg_name (str): ROS package name for the generated messages.</span>
+<span class="sd">            namespace (str, optional): Namespace to restrict parsing to.</span>
+<span class="sd">            dependencies (list, optional): List of dependent package names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Find out the c++ parser</span>
+        <span class="n">generator_path</span><span class="p">,</span> <span class="n">generator_name</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">find_xml_generator</span><span class="p">()</span>
+
+        <span class="n">include_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;CMAKE_PREFIX_PATH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">):</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">prefix</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+            <span class="n">inc</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;include&quot;</span> <span class="o">/</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">inc</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">include_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">inc</span><span class="p">))</span>
+
+        <span class="c1"># Configure the xml generator</span>
+        <span class="n">xml_generator_config</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">xml_generator_configuration_t</span><span class="p">(</span>
+            <span class="n">xml_generator_path</span><span class="o">=</span><span class="n">generator_path</span><span class="p">,</span>
+            <span class="n">xml_generator</span><span class="o">=</span><span class="n">generator_name</span><span class="p">,</span>
+            <span class="n">include_paths</span><span class="o">=</span><span class="n">include_paths</span><span class="p">,</span>
+            <span class="n">cflags</span><span class="o">=</span><span class="s2">&quot;-Wno-pragma-once-outside-header&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">namespace</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pkg_name</span> <span class="o">=</span> <span class="n">pkg_name</span>
+
+        <span class="c1"># don&#39;t need this anymore</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deps</span> <span class="o">=</span> <span class="n">dependencies</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ns</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_ns</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg_interfaces</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decls</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">([</span><span class="n">filename</span><span class="p">],</span> <span class="n">xml_generator_config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_namespace</span> <span class="o">=</span> <span class="n">declarations</span><span class="o">.</span><span class="n">get_global_namespace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decls</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namespaces</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_namespace</span><span class="o">.</span><span class="n">namespaces</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">dependencies</span> <span class="o">!=</span> <span class="p">[</span><span class="s2">&quot;None&quot;</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">msg_interfaces</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">get_message_interfaces</span><span class="p">(</span><span class="n">dependencies</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;check dependencies!! </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">builtin_interface_pkgs</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">get_interface_packages</span><span class="p">()</span>
+        
+        <span class="c1"># if namespace provided by the user</span>
+        <span class="k">if</span> <span class="n">namespace</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_namespace</span><span class="o">.</span><span class="n">namespace</span><span class="p">(</span><span class="n">namespace</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespaces</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">user_ns</span> <span class="o">=</span> <span class="n">ns</span><span class="o">.</span><span class="n">name</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_namespace</span><span class="o">.</span><span class="n">namespace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_ns</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Parser.get_decls"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.parser.Parser.get_decls">[docs]</a>    <span class="k">def</span> <span class="nf">get_decls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract ROS 2 message specifications from parsed declarations.</span>
+
+<span class="sd">        This method:</span>
+<span class="sd">            - Iterates over C++ structs in the target namespace.</span>
+<span class="sd">            - Skips opaque types.</span>
+<span class="sd">            - Converts C++ primitive types to ROS 2 primitives.</span>
+<span class="sd">            - Processes user-defined types recursively.</span>
+<span class="sd">            - Builds `MessageSpecification` objects for ROS 2 message and type adapter generation.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``list[MessageSpecification]``: A list of message specifications objects</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">msg_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">msgs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">test_canonical_types</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">test_msg_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">decl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ns</span><span class="o">.</span><span class="n">declarations</span><span class="p">:</span>
+            <span class="c1"># TODO: check for opaque types</span>
+            <span class="c1"># if isinstance(decl, declarations.opaque_type_t):</span>
+            <span class="c1">#     print(&quot;opaque&quot;)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decl</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">class_t</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">decl</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">DECLARATION_PREFIX</span><span class="p">):</span> <span class="k">continue</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="p">{</span><span class="n">decl</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="p">{}}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decl</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+                <span class="n">msg_name</span> <span class="o">=</span> <span class="n">generate_msg_name</span><span class="p">(</span><span class="n">decl</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">test_msg_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg_name</span><span class="p">)</span>
+
+                <span class="n">test_msg_fields</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">context_pkg</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">decl</span><span class="o">.</span><span class="n">variables</span><span class="p">():</span>
+                    <span class="n">var_type</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+                    <span class="n">field_name</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span>
+                    <span class="n">field_type</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                    <span class="n">msg_fields</span> <span class="o">=</span> <span class="kc">None</span>
+
+                    <span class="c1"># var.decl_type might be any typedef or using type</span>
+                    <span class="c1"># We need the underlying canoncical type</span>
+                    <span class="n">canonical_type</span> <span class="o">=</span> <span class="n">declarations</span><span class="o">.</span><span class="n">type_traits</span><span class="o">.</span><span class="n">remove_alias</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">decl_type</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">char_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;char&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">bool_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;bool&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">signed_char_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;int8&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">unsigned_char_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;uint8&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">short_int_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;int16&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">short_unsigned_int_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;uint16&quot;</span>    
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">int_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;int32&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">unsigned_int_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;uint32&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">long_int_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;int64&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">long_unsigned_int_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;uint64&quot;</span>
+                    
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">float_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">,</span> <span class="n">declarations</span><span class="o">.</span><span class="n">cpptypes</span><span class="o">.</span><span class="n">double_t</span><span class="p">):</span>
+                        <span class="n">field_type</span> <span class="o">=</span> <span class="s2">&quot;float64&quot;</span>
+
+                    <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">VECTOR_TYPE_PREFIX</span><span class="p">):</span>
+                        <span class="n">vector_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">canonical_type</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">VECTOR_TYPE_PREFIX</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">VECTOR_TYPE_SUFFIX</span><span class="p">)</span>
+                        <span class="n">context_pkg</span><span class="p">,</span> <span class="n">msg_fields</span><span class="p">,</span> <span class="n">field_type</span> <span class="o">=</span> <span class="n">process_non_primitives</span><span class="p">(</span><span class="n">vector_type</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">msg_interfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">msg_interfaces</span><span class="p">,</span> <span class="n">builtin_interfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_interface_pkgs</span><span class="p">)</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;weird type found - </span><span class="si">{</span><span class="n">var</span><span class="o">.</span><span class="n">decl_type</span><span class="si">}</span><span class="s2"> - canonical type - </span><span class="si">{</span><span class="n">canonical_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">context_pkg</span><span class="p">,</span> <span class="n">msg_fields</span><span class="p">,</span> <span class="n">field_type</span> <span class="o">=</span> <span class="n">process_non_primitives</span><span class="p">(</span><span class="n">typename</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">decl_type</span><span class="p">),</span> <span class="n">msg_interfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">msg_interfaces</span><span class="p">,</span> <span class="n">builtin_interfaces</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">builtin_interface_pkgs</span><span class="p">)</span>
+
+                    <span class="n">test_canonical_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field_type</span><span class="p">)</span>
+                    <span class="n">field_type</span> <span class="o">=</span> <span class="n">Type</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">context_package_name</span><span class="o">=</span><span class="n">context_pkg</span><span class="p">)</span>
+                    <span class="n">field</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">type_</span><span class="o">=</span><span class="n">field_type</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">field_name</span><span class="p">)</span>
+                    <span class="n">field</span><span class="o">.</span><span class="n">msg_fields</span> <span class="o">=</span> <span class="n">msg_fields</span>
+                    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+
+                    <span class="n">test_msg_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg_fields</span><span class="p">)</span>
+
+                    <span class="n">temp</span><span class="p">[</span><span class="n">decl</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">var_type</span><span class="p">})</span>
+
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">MessageSpecification</span><span class="p">(</span><span class="n">pkg_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pkg_name</span><span class="p">,</span> <span class="n">msg_name</span><span class="o">=</span><span class="n">msg_name</span><span class="p">,</span> <span class="n">fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span> <span class="n">constants</span><span class="o">=</span><span class="p">[])</span>
+            <span class="n">msgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="n">msgs</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, himaj joshi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

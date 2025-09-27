@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>stm_converter.utils &mdash; CPP structs to ROS msg generator 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> CPP structs to ROS msg generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">STM Converter</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CPP structs to ROS msg generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>stm_converter.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for stm_converter.utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Utility functions for parsing and generating ROS 2 messages.</span>
+
+<span class="sd">This module provides helper functions to:</span>
+<span class="sd">    - Convert struct or header names into ROS 2 message names.</span>
+<span class="sd">    - Parse `.msg` files into field specifications.</span>
+<span class="sd">    - Handle namespace-qualified types.</span>
+<span class="sd">    - Identify primitive and non-primitive ROS 2 message field types.</span>
+<span class="sd">    - Assist in message generation workflows for auto-generated ROS interfaces.</span>
+
+<span class="sd">It integrates with `rosidl_adapter` to parse existing `.msg` files and</span>
+<span class="sd">handles recursive resolution of nested message fields.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">rosidl_adapter.parser</span> <span class="kn">import</span> <span class="n">MessageSpecification</span>
+<span class="kn">from</span> <span class="nn">rosidl_adapter.parser</span> <span class="kn">import</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">,</span> <span class="n">parse_message_file</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="n">VECTOR_TYPE_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;std::vector&lt;&quot;</span>
+<span class="n">VECTOR_TYPE_SUFFIX</span> <span class="o">=</span> <span class="s2">&quot;&gt;&quot;</span>
+<span class="n">STRUCT_NAME_SEPARATOR</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span>
+<span class="n">DECLARATION_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span>
+<span class="n">MESSAGE_FILE_EXTENSION</span> <span class="o">=</span> <span class="s2">&quot;.msg&quot;</span>
+<span class="n">SCOPE_RESOLUTION_OPR</span> <span class="o">=</span> <span class="s2">&quot;::&quot;</span>
+<span class="n">DEFAULT_INTERFACE_NAME</span> <span class="o">=</span> <span class="s2">&quot;enter_interface_name&quot;</span>
+
+<span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="get_header_name"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.get_header_name">[docs]</a><span class="k">def</span> <span class="nf">get_header_name</span><span class="p">(</span><span class="n">message_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert PascalCase message name into a snake_case header name.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; get_header_name(&quot;MyMessage&quot;)</span>
+<span class="sd">        &#39;my_message&#39;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``message_name`` (str): The ROS message name in PascalCase.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``str``: The equivalent snake_case file name for the header.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">header</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(?&lt;!^)(?=[A-Z])&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="n">message_name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">header</span></div>
+
+
+<div class="viewcode-block" id="generate_msg_name"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.generate_msg_name">[docs]</a><span class="k">def</span> <span class="nf">generate_msg_name</span><span class="p">(</span><span class="n">msg_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert snake case string to PascalCase ROS msg string.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; generate_msg_name(&quot;my_message&quot;)</span>
+<span class="sd">        &#39;MyMessage&#39;</span>
+<span class="sd">        &gt;&gt;&gt; generate_msg_name(&quot;my_first_name&quot;)</span>
+<span class="sd">        &#39;MyFirstName&#39;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``msg_name`` (str): Struct or type name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``str``: PascalCase formatted name for `.msg` file naming.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">processed_msg_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">msg_name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">STRUCT_NAME_SEPARATOR</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">split_msg</span> <span class="o">=</span> <span class="n">msg_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">STRUCT_NAME_SEPARATOR</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">split_msg</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">part</span><span class="p">:</span>
+                <span class="n">processed_msg_name</span> <span class="o">+=</span> <span class="n">part</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error: remove first or last underscore&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">processed_msg_name</span> <span class="o">+=</span> <span class="n">msg_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">processed_msg_name</span></div>
+
+
+<div class="viewcode-block" id="remove_namespace"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.remove_namespace">[docs]</a><span class="k">def</span> <span class="nf">remove_namespace</span><span class="p">(</span><span class="n">typename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove namespace from a qualified C++ type.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; remove_namespace(&quot;ns::MyNum&quot;)</span>
+<span class="sd">        (&#39;ns&#39;, &#39;MyNum&#39;, &#39;MyNum&#39;)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``typename`` (str): namespaced C++ type.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``tuple[str, str, str]``: (namespace, generated_type, original_type)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">namespace</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">type_</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">generated_type</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">typename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">SCOPE_RESOLUTION_OPR</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;typename = </span><span class="si">{</span><span class="n">typename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">namespace</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">type_</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">generated_type</span> <span class="o">=</span> <span class="n">generate_msg_name</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;illegal use of &#39;::&#39; operator!!&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">generated_type</span><span class="p">,</span> <span class="n">type_</span></div>
+
+
+<div class="viewcode-block" id="get_msg_fields"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.get_msg_fields">[docs]</a><span class="k">def</span> <span class="nf">get_msg_fields</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">MessageSpecification</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract all fields from a ROS message specification.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``msg`` (MessageSpecification): Parsed message specification object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``dict``: Mapping of field name to a list:</span>
+<span class="sd">              [field_type, is_array, array_size, pkg_name, msg_fields]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">all_fields</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+        <span class="n">all_fields</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">is_array</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">array_size</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">pkg_name</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">all_fields</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">msg_fields</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg_fields</span> <span class="o">=</span> <span class="p">{}</span>
+            
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">process_non_primitives</span><span class="p">(</span><span class="n">typename</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">is_array</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">is_array</span><span class="p">,</span> <span class="n">pkg_name</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">pkg_name</span><span class="p">)</span>
+                <span class="n">msg_fields</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+                
+            <span class="n">field</span><span class="o">.</span><span class="n">msg_fields</span> <span class="o">=</span> <span class="n">msg_fields</span>
+            <span class="n">all_fields</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">msg_fields</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">all_fields</span></div>
+
+
+<div class="viewcode-block" id="get_fields"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.get_fields">[docs]</a><span class="k">def</span> <span class="nf">get_fields</span><span class="p">(</span><span class="n">pkg_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span><span class="nb">str</span> <span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Load message fields from an existing or newly generated ROS `msg`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``pkg_name`` (str): ROS package name.</span>
+<span class="sd">        - ``path`` (str): Path to the ROS msg.</span>
+<span class="sd">        - ``name`` (str): Message name without extension.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``dict``: Field mapping from `get_msg_fields`:</span>
+<span class="sd">              [field_type, is_array, array_size, pkg_name, msg_fields]</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ``TypeError``: If the msg file cannot be parsed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">MESSAGE_FILE_EXTENSION</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">parse_message_file</span><span class="p">(</span><span class="n">pkg_name</span><span class="o">=</span><span class="n">pkg_name</span><span class="p">,</span> <span class="n">interface_filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="n">get_msg_fields</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;exception: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2"> filename = </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> 
+
+    <span class="k">return</span> <span class="n">fields</span></div>
+
+<span class="c1"># don&#39;t need deps parameter anymore</span>
+<div class="viewcode-block" id="find_context_pkg"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.find_context_pkg">[docs]</a><span class="k">def</span> <span class="nf">find_context_pkg</span><span class="p">(</span><span class="n">typename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">msg_interfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">builtin_interfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find the ROS package where a message type is defined.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``typename`` (str): Message name without `.msg` extension.</span>
+<span class="sd">        - ``msg_interfaces`` (dict): Mapping of package -&gt; list of defined types from dependencies.</span>
+<span class="sd">        - ``builtin_interfaces`` (dict): Mapping of builtin packages that generate interfaces -&gt; path to interface.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        -  ``tuple[str, str]``: (context_pkg of typename, path to msg file)</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ``NameError``: If the message type is not found in dependencies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">context_pkg</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">pathToFile</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="n">is_present</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># all builtin and generated msgs</span>
+    <span class="k">for</span> <span class="n">package</span><span class="p">,</span> <span class="n">types</span> <span class="ow">in</span> <span class="n">msg_interfaces</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s1">&#39;msg/&#39;</span> <span class="o">+</span> <span class="n">typename</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+            <span class="n">is_present</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">context_pkg</span> <span class="o">+=</span> <span class="n">package</span>
+            <span class="n">pathToFile</span> <span class="o">+=</span> <span class="n">builtin_interfaces</span><span class="p">[</span><span class="n">context_pkg</span><span class="p">]</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/share/</span><span class="si">{</span><span class="n">context_pkg</span><span class="si">}</span><span class="s2">/msg&quot;</span>
+            <span class="k">break</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_present</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">typename</span><span class="si">}</span><span class="s2">.msg doesn&#39;t exists!! check dependencies&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">context_pkg</span><span class="p">,</span> <span class="n">pathToFile</span></div>
+
+
+<div class="viewcode-block" id="check_if_primitve"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.check_if_primitve">[docs]</a><span class="k">def</span> <span class="nf">check_if_primitve</span><span class="p">(</span><span class="n">typename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check and return the canonical ROS primitive type for a given type name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``typename`` (str): Type name to check.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``str``: Canonical primitive type name if matched, else empty string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field_type</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">if</span> <span class="n">typename</span> <span class="ow">in</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">:</span> 
+        <span class="n">field_type</span> <span class="o">+=</span> <span class="n">typename</span>
+
+    <span class="k">elif</span> <span class="n">typename</span> <span class="o">==</span> <span class="s2">&quot;double&quot;</span><span class="p">:</span>
+        <span class="n">field_type</span> <span class="o">+=</span> <span class="s2">&quot;float32&quot;</span>
+
+    <span class="k">elif</span> <span class="n">typename</span> <span class="o">==</span> <span class="s2">&quot;u16string&quot;</span> <span class="ow">or</span> <span class="n">typename</span> <span class="o">==</span> <span class="s2">&quot;u32string&quot;</span><span class="p">:</span>
+        <span class="n">field_type</span> <span class="o">+=</span> <span class="s2">&quot;wstring&quot;</span>
+
+    <span class="k">elif</span> <span class="n">typename</span> <span class="o">+</span> <span class="s1">&#39;32&#39;</span> <span class="ow">in</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">:</span>
+        <span class="n">field_type</span> <span class="o">+=</span> <span class="n">typename</span> <span class="o">+</span> <span class="s1">&#39;32&#39;</span>
+
+    <span class="k">elif</span> <span class="n">typename</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;t&#39;</span> <span class="ow">and</span> <span class="n">typename</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_&#39;</span><span class="p">:</span>
+        <span class="nb">type</span> <span class="o">=</span> <span class="n">typename</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;_t&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span> <span class="ow">in</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">:</span>
+            <span class="n">field_type</span> <span class="o">+=</span> <span class="nb">type</span>
+
+    <span class="k">return</span> <span class="n">field_type</span></div>
+
+
+<div class="viewcode-block" id="process_non_primitives"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.utils.process_non_primitives">[docs]</a><span class="k">def</span> <span class="nf">process_non_primitives</span><span class="p">(</span><span class="n">typename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">is_array</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">msg_interfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">builtin_interfaces</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Resolve a non-primitive type into its message context and fields.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        - ``typename`` (str): Field type name.</span>
+<span class="sd">        - ``is_array`` (bool): Whether the field is an array.</span>
+<span class="sd">        - ``msg_interfaces`` (dict): Mapping of package -&gt; list of defined types from dependencies.</span>
+<span class="sd">        - ``builtin_interfaces`` (dict): Mapping of builtin packages that generate interfaces -&gt; path to interface.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - ``tuple[str, dict, str]``:</span>
+<span class="sd">            - ``context_pkg`` (str): Package where the type is defined.</span>
+<span class="sd">            - ``msg_fields`` (dict): Nested message fields.</span>
+<span class="sd">            - ``field_type`` (str): Resolved ROS type name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">field_type</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">context_pkg</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">msg_fields</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">field_type</span> <span class="o">+=</span> <span class="n">check_if_primitve</span><span class="p">(</span><span class="n">typename</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">field_type</span><span class="p">:</span>
+        <span class="n">field_type</span> <span class="o">+=</span> <span class="n">typename</span>
+
+        <span class="c1"># assuming namespace typed struct</span>
+        <span class="k">if</span> <span class="n">field_type</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">SCOPE_RESOLUTION_OPR</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">namespace</span><span class="p">,</span> <span class="n">field_type</span><span class="p">,</span> <span class="n">typename</span> <span class="o">=</span> <span class="n">remove_namespace</span><span class="p">(</span><span class="n">field_type</span><span class="p">)</span> 
+
+            <span class="n">type_</span> <span class="o">=</span> <span class="n">check_if_primitve</span><span class="p">(</span><span class="n">typename</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">type_</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_array</span><span class="p">:</span> <span class="n">type_</span> <span class="o">+=</span> <span class="s2">&quot;[]&quot;</span>
+                <span class="k">return</span> <span class="n">context_pkg</span><span class="p">,</span> <span class="n">msg_fields</span><span class="p">,</span> <span class="n">type_</span>
+
+        <span class="c1"># if it&#39;s not primitive</span>
+        <span class="n">pkg</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">find_context_pkg</span><span class="p">(</span><span class="n">field_type</span><span class="p">,</span> <span class="n">msg_interfaces</span><span class="p">,</span> <span class="n">builtin_interfaces</span><span class="p">)</span>
+        <span class="n">context_pkg</span> <span class="o">+=</span> <span class="n">pkg</span>
+        <span class="n">msg_fields</span> <span class="o">=</span> <span class="n">get_fields</span><span class="p">(</span><span class="n">pkg_name</span><span class="o">=</span><span class="n">context_pkg</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">field_type</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_array</span><span class="p">:</span> <span class="n">field_type</span> <span class="o">+=</span> <span class="s2">&quot;[]&quot;</span>
+
+    <span class="k">return</span> <span class="n">context_pkg</span><span class="p">,</span> <span class="n">msg_fields</span><span class="p">,</span> <span class="n">field_type</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, himaj joshi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

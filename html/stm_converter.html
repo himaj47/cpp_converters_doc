@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STM Converter Package &mdash; CPP structs to ROS msg generator 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="STM Converter Templates" href="stm_converter_templates.html" />
+    <link rel="prev" title="STM Converter" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> CPP structs to ROS msg generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">STM Converter</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">STM Converter Package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-stm_converter.generator">generator.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-stm_converter.main">main.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-stm_converter.parser">parser.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-stm_converter.utils">utils.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="stm_converter_templates.html">STM Converter Templates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stm_converter_cmake.html">STM Converter CMake</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CPP structs to ROS msg generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">STM Converter</a> &raquo;</li>
+      <li>STM Converter Package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/stm_converter.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="stm-converter-package">
+<h1>STM Converter Package<a class="headerlink" href="#stm-converter-package" title="Permalink to this headline"></a></h1>
+<section id="module-stm_converter.generator">
+<span id="generator-py"></span><h2>generator.py<a class="headerlink" href="#module-stm_converter.generator" title="Permalink to this headline"></a></h2>
+<p>ROS2 Message and type adapter generator.</p>
+<dl class="simple">
+<dt>This module uses Jinja2 templates to generate:</dt><dd><ul class="simple">
+<li><p><cite>msg</cite> files from parsed message specifications.</p></li>
+<li><p>Type adapter C++ header files for custom message integration.</p></li>
+</ul>
+</dd>
+</dl>
+<p>It transforms C++ struct definitions into ROS 2 message definitions and supporting adapter code.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="stm_converter.generator.Generator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">struct_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">rosidl_adapter.parser.MessageSpecification</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interface_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/generator.html#Generator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.generator.Generator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generates ROS 2 message files and type adapters from parsed C++ structs.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">env_</span></code> (jinja2.Environment): Jinja2 environment for loading templates.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">header_name_</span></code> (str): C++ header file name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ns</span></code> (str): Namespace of the struct.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">interface_name</span></code> (str): Target ROS 2 interface name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msg_content_</span></code> (list[dict]): List of parsed message fields for each message.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msg</span></code> (list[MessageSpecification]): Parsed ROS 2 message specifications.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">struct_name</span></code> (list[str]): C++ struct names found.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="stm_converter.generator.Generator.check_existance">
+<span class="sig-name descname"><span class="pre">check_existance</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/generator.html#Generator.check_existance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.generator.Generator.check_existance" title="Permalink to this definition"></a></dt>
+<dd><p>Check if the target message types already exist.</p>
+<p>This checks all interface packages to see if any of the msgs exists</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">bool</span></code>: True if all messages exist, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="stm_converter.generator.Generator.gen_msg_description">
+<span class="sig-name descname"><span class="pre">gen_msg_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/generator.html#Generator.gen_msg_description"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.generator.Generator.gen_msg_description" title="Permalink to this definition"></a></dt>
+<dd><p>Generate msg descriptions (YAML) for the generated messages.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">file</span></code> (str): Output directory and prefix for the msg description file names.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="stm_converter.generator.Generator.gen_msgs">
+<span class="sig-name descname"><span class="pre">gen_msgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/generator.html#Generator.gen_msgs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.generator.Generator.gen_msgs" title="Permalink to this definition"></a></dt>
+<dd><p>Generate <cite>ROS msg</cite> files from parsed message specifications.</p>
+<p>Uses the <cite>message.txt</cite> Jinja2 template to generate ROS2 msg files
+from parsed message field data.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">file</span></code> (str): Not currently used.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="stm_converter.generator.Generator.gen_type_adapter">
+<span class="sig-name descname"><span class="pre">gen_type_adapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/generator.html#Generator.gen_type_adapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.generator.Generator.gen_type_adapter" title="Permalink to this definition"></a></dt>
+<dd><p>Generate C++ type adapter headers for the generated messages.</p>
+<p>Uses Jinja2 templates to generate type adapters</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">file</span></code> (str): Output directory and prefix for the adapter file names.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.generator.check_for_extras">
+<span class="sig-name descname"><span class="pre">check_for_extras</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jinja2.environment.Environment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/generator.html#check_for_extras"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.generator.check_for_extras" title="Permalink to this definition"></a></dt>
+<dd><p>Verifies whether the target message contains any non-primitive types, and if it does, returns the necessary header include lines.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">msg_content</span></code>: message information
+<code class="docutils literal notranslate"><span class="pre">template_env</span></code>: Jinja template environment to get templates
+<code class="docutils literal notranslate"><span class="pre">file_path</span></code>: Path to registry</p>
+</dd>
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">tuple[str,dict]</span></code>: template rendered string (include headers lines), message properties (namespace, struct name)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-stm_converter.main">
+<span id="main-py"></span><h2>main.py<a class="headerlink" href="#module-stm_converter.main" title="Permalink to this headline"></a></h2>
+<p>CLI entry point for stm_converter.</p>
+<p>This script converts C++ struct definitions into ROS2 msg message files and generate their corresponding type adapters and optionally message description YAML files.</p>
+<p>It uses the <cite>Parser</cite> class to extract message definitions from C++ headers and the
+<cite>Generator</cite> class to produce ROS 2 artifacts based on Jinja2 templates.</p>
+<dl class="simple">
+<dt>Example:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">`bash</span>
+<span class="pre">python3</span> <span class="pre">main.py</span> <span class="pre">my_structs.hpp</span> <span class="pre">--namespace</span> <span class="pre">my_namespace</span> <span class="pre">--out-description</span> <span class="pre">msg_desc.yaml</span> <span class="pre">--out-msg</span> <span class="pre">msg/MyMessage.msg</span> <span class="pre">--out-adapter</span> <span class="pre">adapters/</span> <span class="pre">--package</span> <span class="pre">my_ros_pkg</span> <span class="pre">--deps</span> <span class="pre">std_msgs</span> <span class="pre">sensor_msgs</span>
+<span class="pre">`</span></code></p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.main.main">
+<span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/main.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.main.main" title="Permalink to this definition"></a></dt>
+<dd><p>Parses command-line arguments, processes the given C++ headers,
+and generates ROS 2 message files and type adapters.</p>
+<dl class="simple">
+<dt>Raises:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">ValueError</span></code>: If required arguments are missing.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-stm_converter.parser">
+<span id="parser-py"></span><h2>parser.py<a class="headerlink" href="#module-stm_converter.parser" title="Permalink to this headline"></a></h2>
+<p>Parser module for extracting ROS 2 message specifications from C++ structs/classes.</p>
+<p>This module uses <cite>pygccxml</cite> to parse C++ header files and extract message definitions.
+It converts C++ types to ROS 2 message types, handles nested/non-primitive types,
+and returns ROS 2 compatible <cite>MessageSpecification</cite> objects.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="stm_converter.parser.Parser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Parser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pkg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dependencies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/parser.html#Parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.parser.Parser" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parses C++ header files into ROS 2 <cite>MessageSpecification</cite> objects.</p>
+<dl class="simple">
+<dt>This class:</dt><dd><ul class="simple">
+<li><p>Uses <cite>pygccxml</cite> to generate and parse Abstract Syntax Tree (XML representations) of C++ code.</p></li>
+<li><p>Extracts C++ structs as ROS 2 messages.</p></li>
+<li><p>Maps C++ primitive types to ROS 2 primitive types.</p></li>
+<li><p>Resolves dependencies by checking existing/autogenerated ROS 2 message packages.</p></li>
+</ul>
+</dd>
+<dt>Attributes:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code> (str): Path to the C++ header file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">namespace</span></code> (str): User namespace to parse. If empty, uses the last namespace found.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pkg_name</span></code> (str): ROS package name for generated messages.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deps</span></code> (list): list of dependent ROS packages.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ns</span></code>: Parsed <cite>pygccxml</cite> namespace object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_ns</span></code> (str): Name of the detected (last found) namespace if not provided.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">struct_name</span></code> (list[str]): List of struct names found.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msg_interfaces</span></code> (dict): Mapping of package that generate interfaces -&gt; available message interfaces from dependencies.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">builtin_interface_pkgs</span></code> (dict): Mapping of builtin packages that generate interfaces -&gt; path to msg.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">decls</span></code>: Parsed pygccxml declarations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">global_namespace</span></code>: Root <cite>pygccxml</cite> namespace object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">namespaces</span></code> (list): All top-level namespaces in the file.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="stm_converter.parser.Parser.get_decls">
+<span class="sig-name descname"><span class="pre">get_decls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/parser.html#Parser.get_decls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.parser.Parser.get_decls" title="Permalink to this definition"></a></dt>
+<dd><p>Extract ROS 2 message specifications from parsed declarations.</p>
+<dl class="simple">
+<dt>This method:</dt><dd><ul class="simple">
+<li><p>Iterates over C++ structs in the target namespace.</p></li>
+<li><p>Skips opaque types.</p></li>
+<li><p>Converts C++ primitive types to ROS 2 primitives.</p></li>
+<li><p>Processes user-defined types recursively.</p></li>
+<li><p>Builds <cite>MessageSpecification</cite> objects for ROS 2 message and type adapter generation.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">list[MessageSpecification]</span></code>: A list of message specifications objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-stm_converter.utils">
+<span id="utils-py"></span><h2>utils.py<a class="headerlink" href="#module-stm_converter.utils" title="Permalink to this headline"></a></h2>
+<p>Utility functions for parsing and generating ROS 2 messages.</p>
+<dl class="simple">
+<dt>This module provides helper functions to:</dt><dd><ul class="simple">
+<li><p>Convert struct or header names into ROS 2 message names.</p></li>
+<li><p>Parse <cite>.msg</cite> files into field specifications.</p></li>
+<li><p>Handle namespace-qualified types.</p></li>
+<li><p>Identify primitive and non-primitive ROS 2 message field types.</p></li>
+<li><p>Assist in message generation workflows for auto-generated ROS interfaces.</p></li>
+</ul>
+</dd>
+</dl>
+<p>It integrates with <cite>rosidl_adapter</cite> to parse existing <cite>.msg</cite> files and
+handles recursive resolution of nested message fields.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.check_if_primitve">
+<span class="sig-name descname"><span class="pre">check_if_primitve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#check_if_primitve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.check_if_primitve" title="Permalink to this definition"></a></dt>
+<dd><p>Check and return the canonical ROS primitive type for a given type name.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">typename</span></code> (str): Type name to check.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">str</span></code>: Canonical primitive type name if matched, else empty string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.find_context_pkg">
+<span class="sig-name descname"><span class="pre">find_context_pkg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg_interfaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin_interfaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#find_context_pkg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.find_context_pkg" title="Permalink to this definition"></a></dt>
+<dd><p>Find the ROS package where a message type is defined.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">typename</span></code> (str): Message name without <cite>.msg</cite> extension.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msg_interfaces</span></code> (dict): Mapping of package -&gt; list of defined types from dependencies.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">builtin_interfaces</span></code> (dict): Mapping of builtin packages that generate interfaces -&gt; path to interface.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">tuple[str,</span> <span class="pre">str]</span></code>: (context_pkg of typename, path to msg file)</p></li>
+</ul>
+</dd>
+<dt>Raises:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">NameError</span></code>: If the message type is not found in dependencies.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.generate_msg_name">
+<span class="sig-name descname"><span class="pre">generate_msg_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#generate_msg_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.generate_msg_name" title="Permalink to this definition"></a></dt>
+<dd><p>Convert snake case string to PascalCase ROS msg string.</p>
+<dl>
+<dt>Example:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">generate_msg_name</span><span class="p">(</span><span class="s2">&quot;my_message&quot;</span><span class="p">)</span>
+<span class="go">&#39;MyMessage&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generate_msg_name</span><span class="p">(</span><span class="s2">&quot;my_first_name&quot;</span><span class="p">)</span>
+<span class="go">&#39;MyFirstName&#39;</span>
+</pre></div>
+</div>
+</dd>
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">msg_name</span></code> (str): Struct or type name.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">str</span></code>: PascalCase formatted name for <cite>.msg</cite> file naming.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.get_fields">
+<span class="sig-name descname"><span class="pre">get_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pkg_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#get_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.get_fields" title="Permalink to this definition"></a></dt>
+<dd><p>Load message fields from an existing or newly generated ROS <cite>msg</cite>.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pkg_name</span></code> (str): ROS package name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path</span></code> (str): Path to the ROS msg.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> (str): Message name without extension.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">dict</span></code>: Field mapping from <cite>get_msg_fields</cite>:</dt><dd><p>[field_type, is_array, array_size, pkg_name, msg_fields]</p>
+</dd>
+</dl>
+</dd>
+<dt>Raises:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">TypeError</span></code>: If the msg file cannot be parsed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.get_header_name">
+<span class="sig-name descname"><span class="pre">get_header_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#get_header_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.get_header_name" title="Permalink to this definition"></a></dt>
+<dd><p>Convert PascalCase message name into a snake_case header name.</p>
+<dl>
+<dt>Example:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">get_header_name</span><span class="p">(</span><span class="s2">&quot;MyMessage&quot;</span><span class="p">)</span>
+<span class="go">&#39;my_message&#39;</span>
+</pre></div>
+</div>
+</dd>
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">message_name</span></code> (str): The ROS message name in PascalCase.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">str</span></code>: The equivalent snake_case file name for the header.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.get_msg_fields">
+<span class="sig-name descname"><span class="pre">get_msg_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">rosidl_adapter.parser.MessageSpecification</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#get_msg_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.get_msg_fields" title="Permalink to this definition"></a></dt>
+<dd><p>Extract all fields from a ROS message specification.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">msg</span></code> (MessageSpecification): Parsed message specification object.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">dict</span></code>: Mapping of field name to a list:</dt><dd><p>[field_type, is_array, array_size, pkg_name, msg_fields]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.process_non_primitives">
+<span class="sig-name descname"><span class="pre">process_non_primitives</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg_interfaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">builtin_interfaces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#process_non_primitives"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.process_non_primitives" title="Permalink to this definition"></a></dt>
+<dd><p>Resolve a non-primitive type into its message context and fields.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">typename</span></code> (str): Field type name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_array</span></code> (bool): Whether the field is an array.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msg_interfaces</span></code> (dict): Mapping of package -&gt; list of defined types from dependencies.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">builtin_interfaces</span></code> (dict): Mapping of builtin packages that generate interfaces -&gt; path to interface.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">tuple[str,</span> <span class="pre">dict,</span> <span class="pre">str]</span></code>:</dt><dd><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">context_pkg</span></code> (str): Package where the type is defined.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">msg_fields</span></code> (dict): Nested message fields.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">field_type</span></code> (str): Resolved ROS type name.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="stm_converter.utils.remove_namespace">
+<span class="sig-name descname"><span class="pre">remove_namespace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">typename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stm_converter/utils.html#remove_namespace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#stm_converter.utils.remove_namespace" title="Permalink to this definition"></a></dt>
+<dd><p>Remove namespace from a qualified C++ type.</p>
+<dl>
+<dt>Example:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">remove_namespace</span><span class="p">(</span><span class="s2">&quot;ns::MyNum&quot;</span><span class="p">)</span>
+<span class="go">(&#39;ns&#39;, &#39;MyNum&#39;, &#39;MyNum&#39;)</span>
+</pre></div>
+</div>
+</dd>
+<dt>Args:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">typename</span></code> (str): namespaced C++ type.</p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">tuple[str,</span> <span class="pre">str,</span> <span class="pre">str]</span></code>: (namespace, generated_type, original_type)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-stm_converter"></span></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="STM Converter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stm_converter_templates.html" class="btn btn-neutral float-right" title="STM Converter Templates" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, himaj joshi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

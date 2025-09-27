@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STM Converter Templates &mdash; CPP structs to ROS msg generator 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="STM Converter CMake" href="stm_converter_cmake.html" />
+    <link rel="prev" title="STM Converter Package" href="stm_converter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> CPP structs to ROS msg generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">STM Converter</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="stm_converter.html">STM Converter Package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">STM Converter Templates</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#message-template">Message Template</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#type-adapter-templates">Type Adapter Templates</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#main-template">Main Template</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#includes">Includes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#array-types">Array Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#non-array-types">Non-Array Types</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="stm_converter_cmake.html">STM Converter CMake</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CPP structs to ROS msg generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">STM Converter</a> &raquo;</li>
+      <li>STM Converter Templates</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/stm_converter_templates.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="stm-converter-templates">
+<h1>STM Converter Templates<a class="headerlink" href="#stm-converter-templates" title="Permalink to this headline"></a></h1>
+<p>These Jinja2 templates are used by <code class="docutils literal notranslate"><span class="pre">stm_converter</span></code> to generate ROS 2
+message definitions and type adapters.</p>
+<section id="message-template">
+<h2>Message Template<a class="headerlink" href="#message-template" title="Permalink to this headline"></a></h2>
+<p>This template defines how custom C++ structs are converted into ROS 2
+message definitions.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">message.txt</span><a class="headerlink" href="#id1" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="cp">{%</span>- <span class="k">for</span> <span class="nv">field_name</span><span class="o">,</span> <span class="nv">field_specs</span> <span class="k">in</span> <span class="nv">msg.items</span><span class="o">()</span> <span class="cp">%}</span><span class="x"></span>
+<span class="cp">{%</span>- <span class="k">if</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">1</span><span class="o">]</span> <span class="k">and</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">3</span><span class="o">]</span> <span class="cp">%}</span><span class="x"></span>
+<span class="cp">{{</span><span class="o">-</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="cp">}}</span><span class="x">/</span><span class="cp">{{</span><span class="nv">field_specs</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="cp">}}</span><span class="x">[] </span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}{{</span><span class="s2">&quot;\n&quot;</span><span class="cp">}}</span><span class="x"></span>
+<span class="cp">{%</span>- <span class="k">elif</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">1</span><span class="o">]</span> <span class="cp">%}</span><span class="x"></span>
+<span class="cp">{{</span><span class="o">-</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="cp">}}</span><span class="x">[] </span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}{{</span><span class="s2">&quot;\n&quot;</span><span class="cp">}}</span><span class="x"></span>
+<span class="cp">{%</span>- <span class="k">elif</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">3</span><span class="o">]</span> <span class="cp">%}</span><span class="x"></span>
+<span class="cp">{{</span><span class="o">-</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">3</span><span class="o">]</span><span class="cp">}}</span><span class="x">/</span><span class="cp">{{</span><span class="nv">field_specs</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="cp">}}</span><span class="x"> </span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}{{</span><span class="s2">&quot;\n&quot;</span><span class="cp">}}</span><span class="x"></span>
+<span class="cp">{%</span>- <span class="k">else</span> <span class="cp">%}</span><span class="x"></span>
+<span class="cp">{{</span><span class="o">-</span> <span class="nv">field_specs</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="cp">}}</span><span class="x"> </span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}{{</span><span class="s2">&quot;\n&quot;</span><span class="cp">}}</span><span class="x"></span>
+<span class="cp">{%</span>- <span class="k">endif</span> <span class="cp">%}</span><span class="x"></span>
+<span class="cp">{%</span>- <span class="k">endfor</span> <span class="cp">%}</span><span class="x"></span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="type-adapter-templates">
+<h2>Type Adapter Templates<a class="headerlink" href="#type-adapter-templates" title="Permalink to this headline"></a></h2>
+<section id="main-template">
+<h3>Main Template<a class="headerlink" href="#main-template" title="Permalink to this headline"></a></h3>
+<p>The entry point template for generating type adapters.
+It includes the helper sub-templates based on type (array / non-array).</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">type_adapter.txt</span><a class="headerlink" href="#id2" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="cp">{{</span><span class="nv">includes</span><span class="cp">}}</span><span class="x"></span>
+
+<span class="x">template&lt;&gt;</span>
+<span class="x">struct rclcpp::TypeAdapter&lt;</span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct_name</span><span class="cp">}}</span><span class="x">, </span><span class="cp">{{</span><span class="nv">interface_name</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x">&gt;</span>
+<span class="x">{</span>
+<span class="x">  using is_specialized = std::true_type;</span>
+<span class="x">  using custom_type = </span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct_name</span><span class="cp">}}</span><span class="x">;</span>
+<span class="x">  using ros_message_type = </span><span class="cp">{{</span><span class="nv">interface_name</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x">;</span>
+
+<span class="x">  static</span>
+<span class="x">  void</span>
+<span class="x">  convert_to_ros_message(</span>
+<span class="x">    const custom_type &amp; source,</span>
+<span class="x">    ros_message_type &amp; destination)</span>
+<span class="x">  {</span>
+<span class="x">    </span><span class="cp">{{</span><span class="nv">primitives</span><span class="cp">}}</span><span class="x"></span>
+<span class="x">    </span><span class="cp">{{</span><span class="nv">to_ros_msg</span><span class="cp">}}</span><span class="x"></span>
+<span class="x">  }</span>
+
+<span class="x">  static</span>
+<span class="x">  void</span>
+<span class="x">  convert_to_custom(</span>
+<span class="x">    const ros_message_type &amp; source,</span>
+<span class="x">    custom_type &amp; destination)</span>
+<span class="x">  {</span>
+<span class="x">    </span><span class="cp">{{</span><span class="nv">primitives</span><span class="cp">}}</span><span class="x"></span>
+<span class="x">    </span><span class="cp">{{</span><span class="nv">to_custom</span><span class="cp">}}</span><span class="x"></span>
+<span class="x">  }</span>
+<span class="x">};</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="includes">
+<h3>Includes<a class="headerlink" href="#includes" title="Permalink to this headline"></a></h3>
+<p>Utility templates for managing include directives inside generated adapters.</p>
+<ul class="simple">
+<li><p><strong>extras.txt</strong> → Optional extra includes for non-primitive/autogenerated types.</p></li>
+<li><p><strong>includes.txt</strong> → Standard includes needed for adapters.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">extras.txt</span><a class="headerlink" href="#id3" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">#include &quot;</span><span class="cp">{{</span><span class="nv">pkg</span><span class="cp">}}</span><span class="x">/type_adapters/</span><span class="cp">{{</span><span class="nv">header</span><span class="cp">}}</span><span class="x">&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">includes.txt</span><a class="headerlink" href="#id4" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">#pragma once</span>
+<span class="x">#include &lt;rclcpp/type_adapter.hpp&gt;</span>
+<span class="x">#include &quot;</span><span class="cp">{{</span><span class="nv">interface_name</span><span class="cp">}}</span><span class="x">/msg/</span><span class="cp">{{</span><span class="nv">struct_name</span><span class="cp">}}</span><span class="x">.hpp&quot;</span>
+<span class="x">#include &quot;</span><span class="cp">{{</span><span class="nv">interface_name</span><span class="cp">}}</span><span class="x">/headers/</span><span class="cp">{{</span><span class="nv">header</span><span class="cp">}}</span><span class="x">.hpp&quot;</span>
+
+<span class="cp">{{</span><span class="nv">extras</span><span class="cp">}}</span><span class="x"></span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="array-types">
+<h3>Array Types<a class="headerlink" href="#array-types" title="Permalink to this headline"></a></h3>
+<p>These templates handle type adapter code when the field is of array/vector type.</p>
+<ul class="simple">
+<li><p><strong>adapter__to_custom.txt</strong> → Calls the adapter (convert_to_custom) of the non-primitive type inside the loop.</p></li>
+<li><p><strong>adapter__to_ros.txt</strong> → Calls the adapter (convert_to_ros_message) of the non-primitive type inside the loop.</p></li>
+<li><p><strong>loop.txt</strong> → Iterates through elements in array (source field).</p></li>
+<li><p><strong>np_push_back.txt</strong> → Pushes elements into destination field of non-primitive types.</p></li>
+<li><p><strong>push_back.txt</strong> → Pushes elements into destination field of primitive types.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">adapter__to_custom.txt</span><a class="headerlink" href="#id5" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct</span><span class="cp">}}</span><span class="x"> element;</span>
+<span class="x">rclcpp::TypeAdapter&lt;</span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct</span><span class="cp">}}</span><span class="x">, </span><span class="cp">{{</span><span class="nv">pkg</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x">&gt;::convert_to_custom(elem, element);</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">adapter__to_ros.txt</span><a class="headerlink" href="#id6" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="cp">{{</span><span class="nv">pkg</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x"> element;</span>
+<span class="x">rclcpp::TypeAdapter&lt;</span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct</span><span class="cp">}}</span><span class="x">, </span><span class="cp">{{</span><span class="nv">pkg</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x">&gt;::convert_to_ros_message(elem, element);</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">loop.txt</span><a class="headerlink" href="#id7" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">.clear();</span>
+<span class="x">destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">.reserve(source.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">.size());</span>
+
+<span class="x">for (const auto&amp; elem : source.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">) {</span>
+<span class="x">    </span><span class="cp">{{</span><span class="nv">content</span><span class="cp">}}</span><span class="x"></span>
+<span class="x">}</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">np_push_back.txt</span><a class="headerlink" href="#id8" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">.push_back(element);</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">push_back.txt</span><a class="headerlink" href="#id9" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">.push_back(elem);</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="non-array-types">
+<h3>Non-Array Types<a class="headerlink" href="#non-array-types" title="Permalink to this headline"></a></h3>
+<p>These templates handle type adapter code when the field is a non-array type.</p>
+<ul class="simple">
+<li><p><strong>na_adapter__to_custom.txt</strong> → Calls the adapter (convert_to_custom) of the non-primitive type.</p></li>
+<li><p><strong>na_adapter__to_ros.txt</strong> → Calls the adapter (convert_to_ros_message) of the non-primitive type.</p></li>
+<li><p><strong>non_array_types.txt</strong> → Direct field assignment for non-array types.</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">na_adapter__to_custom.txt</span><a class="headerlink" href="#id10" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">rclcpp::TypeAdapter&lt;</span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct</span><span class="cp">}}</span><span class="x">, </span><span class="cp">{{</span><span class="nv">pkg</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x">&gt;::convert_to_custom(source.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">, destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">);</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id11">
+<div class="code-block-caption"><span class="caption-text">na_adapter__to_ros.txt</span><a class="headerlink" href="#id11" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">rclcpp::TypeAdapter&lt;</span><span class="cp">{{</span><span class="nv">namespace</span><span class="cp">}}</span><span class="x">::</span><span class="cp">{{</span><span class="nv">struct</span><span class="cp">}}</span><span class="x">, </span><span class="cp">{{</span><span class="nv">pkg</span><span class="cp">}}</span><span class="x">::msg::</span><span class="cp">{{</span><span class="nv">msg</span><span class="cp">}}</span><span class="x">&gt;::convert_to_ros_message(source.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">, destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">);</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id12">
+<div class="code-block-caption"><span class="caption-text">non_array_types.txt</span><a class="headerlink" href="#id12" title="Permalink to this code"></a></div>
+<div class="highlight-jinja notranslate"><div class="highlight"><pre><span></span><span class="x">destination.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x"> = source.</span><span class="cp">{{</span><span class="nv">field_name</span><span class="cp">}}</span><span class="x">;</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stm_converter.html" class="btn btn-neutral float-left" title="STM Converter Package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stm_converter_cmake.html" class="btn btn-neutral float-right" title="STM Converter CMake" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, himaj joshi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

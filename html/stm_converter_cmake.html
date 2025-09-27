@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STM Converter CMake &mdash; CPP structs to ROS msg generator 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="STM Converter Templates" href="stm_converter_templates.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> CPP structs to ROS msg generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">STM Converter</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="stm_converter.html">STM Converter Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stm_converter_templates.html">STM Converter Templates</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">STM Converter CMake</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CPP structs to ROS msg generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">STM Converter</a> &raquo;</li>
+      <li>STM Converter CMake</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/stm_converter_cmake.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="stm-converter-cmake">
+<h1>STM Converter CMake<a class="headerlink" href="#stm-converter-cmake" title="Permalink to this headline"></a></h1>
+<p>This package provides CMake function for generating ROS 2 message files and type adapters from C++ structs.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="convert_to_ros_msg">
+<span class="sig-name descname"><span class="pre">convert_to_ros_msg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">TARGET_NAME</span> <span class="pre">FILE</span> <span class="pre">[DEPENDENCIES</span> <span class="pre">&lt;pkg1;pkg2;...&gt;]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#convert_to_ros_msg" title="Permalink to this definition"></a></dt>
+<dd><p>Generate ROS 2 message definitions (<cite>.msg</cite>) and type adapters from a given C++ header file.</p>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TARGET_NAME</span></code> (string)
+Custom target name for this generation step.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FILE</span></code> (string)
+Path to the C++ header file containing the struct definition(s).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DEPENDENCIES</span></code> (list, optional)
+Additional ROS 2 interface packages this message depends on.</p></li>
+</ul>
+<p><strong>Behavior:</strong></p>
+<ol class="arabic simple">
+<li><p>Runs the <cite>stm_converter</cite> generator executable to produce:</p>
+<ul class="simple">
+<li><p>A ROS2 <cite>msg</cite> file under <code class="docutils literal notranslate"><span class="pre">msg/</span></code></p></li>
+<li><p>A type adapter header in <code class="docutils literal notranslate"><span class="pre">&lt;build&gt;/type_adapters/</span></code></p></li>
+<li><p>A YAML message description in <code class="docutils literal notranslate"><span class="pre">&lt;build&gt;/msg_descriptions/</span></code></p></li>
+</ul>
+</li>
+<li><p>Calls <code class="docutils literal notranslate"><span class="pre">rosidl_generate_interfaces()</span></code> with the generated <cite>msg</cite> files.</p></li>
+<li><p>Installs generated type adapters and messages into the package’s <cite>share/</cite> folder.</p></li>
+</ol>
+<p><strong>Example:</strong></p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nf">convert_to_ros_msg(</span><span class="w"></span>
+<span class="w">  </span><span class="nb">my_struct_generator</span><span class="w"></span>
+<span class="w">  </span><span class="na">include/my_pkg/my_struct.hpp</span><span class="w"></span>
+<span class="w">  </span><span class="no">DEPENDENCIES</span><span class="w"> </span><span class="nb">my_custom_interfaces</span><span class="w"></span>
+<span class="nf">)</span><span class="w"></span>
+</pre></div>
+</div>
+<p>After running <code class="docutils literal notranslate"><span class="pre">colcon</span> <span class="pre">build</span></code>, this will produce:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">msg/MyStruct.msg</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">install/my_pkg/share/my_pkg/type_adapters/MyStruct_type_adapter.hpp</span></code></p></li>
+</ul>
+</dd></dl>
+
+<p>Here is the source code for the <code class="docutils literal notranslate"><span class="pre">convert_to_ros_msg</span></code> function:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">generator.cmake</span><a class="headerlink" href="#id1" title="Permalink to this code"></a></div>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="nf">include(</span><span class="s">&quot;${CMAKE_CURRENT_LIST_DIR}/generate_msg_name.cmake&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos"> 2</span><span class="nf">find_package(</span><span class="nb">rosidl_default_generators</span><span class="w"> </span><span class="no">REQUIRED</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="nf">function(</span><span class="nb">convert_to_ros_msg_helper</span><span class="w"> </span><span class="no">TARGET_NAME</span><span class="w"> </span><span class="no">FILE</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos"> 5</span><span class="w">    </span><span class="nf">set(</span><span class="nb">generator_pkg</span><span class="w"> </span><span class="nb">stm_converter</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="w">    </span><span class="nf">set(</span><span class="nb">options</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos"> 8</span><span class="w">    </span><span class="nf">set(</span><span class="nb">one_value_keywords</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos"> 9</span><span class="w">    </span><span class="nf">set(</span><span class="nb">deps</span><span class="w"> </span><span class="no">DEPENDENCIES</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="w">    </span><span class="nf">cmake_parse_arguments(</span><span class="no">PARSE_ARGV</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="no">PKG</span><span class="w"></span>
+<span class="linenos">12</span><span class="w">        </span><span class="s">&quot;${options}&quot;</span><span class="w"> </span><span class="s">&quot;${one_value_keywords}&quot;</span><span class="w"> </span><span class="s">&quot;${deps}&quot;</span><span class="w"></span>
+<span class="linenos">13</span><span class="w">    </span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="w">    </span><span class="nf">get_filename_component(</span><span class="nb">basename</span><span class="w"> </span><span class="o">${</span><span class="nt">FILE</span><span class="o">}</span><span class="w"> </span><span class="no">NAME_WE</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">16</span><span class="w">    </span><span class="nf">get_filename_component(</span><span class="nb">headerFile</span><span class="w"> </span><span class="o">${</span><span class="nt">FILE</span><span class="o">}</span><span class="w"> </span><span class="no">NAME</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="w">    </span><span class="nf">set(</span><span class="nb">description_file</span><span class="w"> </span><span class="s">&quot;${basename}_desc.yaml&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">19</span><span class="w">    </span><span class="nf">set(</span><span class="nb">type_adapter_file</span><span class="w"> </span><span class="s">&quot;${basename}_type_adapter.hpp&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">20</span>
+<span class="linenos">21</span><span class="w">    </span><span class="nf">file(</span><span class="no">MAKE_DIRECTORY</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}/msg&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">22</span><span class="w">    </span><span class="nf">file(</span><span class="no">MAKE_DIRECTORY</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}/msg_descriptions&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">23</span><span class="w">    </span><span class="nf">file(</span><span class="no">MAKE_DIRECTORY</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}/type_adapters&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">24</span>
+<span class="linenos">25</span><span class="w">    </span><span class="nf">set(</span><span class="nb">msg_description</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}/msg_descriptions/&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">26</span><span class="w">    </span><span class="nf">set(</span><span class="nb">type_adapter</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}/type_adapters/&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">27</span>
+<span class="linenos">28</span><span class="w">    </span><span class="nf">snake_to_pascal(</span><span class="s">&quot;${basename}&quot;</span><span class="w"> </span><span class="nb">out_string</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">29</span>
+<span class="linenos">30</span><span class="w">    </span><span class="nf">set(</span><span class="nb">ros_msg</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_SOURCE_DIR}/msg/&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">31</span><span class="w">    </span><span class="nf">set(</span><span class="nb">formatted_msg</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}:msg/${out_string}.msg&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">32</span>
+<span class="linenos">33</span><span class="w">    </span><span class="nf">execute_process(</span><span class="w"></span>
+<span class="linenos">34</span><span class="w">        </span><span class="no">COMMAND</span><span class="w"> </span><span class="nb">ros2</span><span class="w"> </span><span class="nb">pkg</span><span class="w"> </span><span class="nb">prefix</span><span class="w"> </span><span class="o">${</span><span class="nt">generator_pkg</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">35</span><span class="w">        </span><span class="no">OUTPUT_VARIABLE</span><span class="w"> </span><span class="nb">stm_converter_prefix</span><span class="w"></span>
+<span class="linenos">36</span><span class="w">        </span><span class="no">OUTPUT_STRIP_TRAILING_WHITESPACE</span><span class="w"></span>
+<span class="linenos">37</span><span class="w">    </span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">38</span><span class="w">    </span><span class="nf">set(</span><span class="nb">msg_generator_path</span><span class="w"> </span><span class="s">&quot;${stm_converter_prefix}/lib/${generator_pkg}/${generator_pkg}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">39</span>
+<span class="linenos">40</span><span class="w">    </span><span class="nf">set(</span><span class="nb">cmd</span><span class="w"> </span><span class="o">${</span><span class="nt">msg_generator_path</span><span class="o">}</span><span class="w"> </span><span class="s">&quot;${FILE}&quot;</span><span class="w"> </span><span class="p">--</span><span class="nb">out-description</span><span class="w"> </span><span class="s">&quot;${msg_description}&quot;</span><span class="w"> </span><span class="p">--</span><span class="nb">out-msg</span><span class="w"> </span><span class="s">&quot;${ros_msg}&quot;</span><span class="w"> </span><span class="p">--</span><span class="nb">out-adapter</span><span class="w"> </span><span class="s">&quot;${type_adapter}&quot;</span><span class="w"> </span><span class="p">--</span><span class="nb">package</span><span class="w"> </span><span class="s">&quot;${PROJECT_NAME}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">41</span>
+<span class="linenos">42</span><span class="w">    </span><span class="nf">if(</span><span class="no">PKG_DEPENDENCIES</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">43</span><span class="w">        </span><span class="nf">string(</span><span class="no">REPLACE</span><span class="w"> </span><span class="s">&quot;;&quot;</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="nb">deps_str</span><span class="w"> </span><span class="s">&quot;${PKG_DEPENDENCIES}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">44</span><span class="w">        </span><span class="nf">list(</span><span class="no">APPEND</span><span class="w"> </span><span class="nb">cmd</span><span class="w"> </span><span class="p">--</span><span class="nb">deps</span><span class="w"> </span><span class="s">&quot;${deps_str}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">45</span><span class="w">        </span><span class="nf">set(</span><span class="no">MSG_GEN_PKG_DEPENDENCIES</span><span class="w"> </span><span class="o">${</span><span class="nt">PKG_DEPENDENCIES</span><span class="o">}</span><span class="w"> </span><span class="no">PARENT_SCOPE</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">46</span><span class="w">    </span><span class="nf">endif()</span><span class="w"></span>
+<span class="linenos">47</span>
+<span class="linenos">48</span><span class="w">    </span><span class="nf">set(</span><span class="nb">msg_src</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_SOURCE_DIR}/msg/${out_string}.msg&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">49</span>
+<span class="linenos">50</span><span class="w">    </span><span class="nf">execute_process(</span><span class="w"></span>
+<span class="linenos">51</span><span class="w">        </span><span class="no">COMMAND</span><span class="w"> </span><span class="o">${</span><span class="nt">cmd</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">52</span><span class="w">        </span><span class="no">WORKING_DIRECTORY</span><span class="w"> </span><span class="o">${</span><span class="nt">CMAKE_SOURCE_DIR</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">53</span><span class="w">    </span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">54</span>
+<span class="linenos">55</span><span class="w">    </span><span class="nf">set(</span><span class="no">MSG_FILES</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">56</span><span class="w">    </span><span class="nf">set(</span><span class="no">TYPE_ADAPTERS</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">57</span>
+<span class="linenos">58</span><span class="w">    </span><span class="nf">file(</span><span class="no">GLOB_RECURSE</span><span class="w"> </span><span class="no">MSG_FILES_RECURSIVE</span><span class="w"> </span><span class="no">RELATIVE</span><span class="w"> </span><span class="o">${</span><span class="nt">CMAKE_CURRENT_SOURCE_DIR</span><span class="o">}</span><span class="w"> </span><span class="s">&quot;msg/*.msg&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">59</span><span class="w">    </span><span class="nf">file(</span><span class="no">GLOB_RECURSE</span><span class="w"> </span><span class="no">TYPE_ADAPTERS_RECURSIVE</span><span class="w"> </span><span class="s">&quot;${CMAKE_CURRENT_BINARY_DIR}/type_adapters/*_type_adapter.hpp&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">60</span>
+<span class="linenos">61</span><span class="w">    </span><span class="nf">list(</span><span class="no">APPEND</span><span class="w"> </span><span class="no">MSG_FILES</span><span class="w"> </span><span class="o">${</span><span class="nt">MSG_FILES_RECURSIVE</span><span class="o">}</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">62</span><span class="w">    </span><span class="nf">list(</span><span class="no">APPEND</span><span class="w"> </span><span class="no">TYPE_ADAPTERS</span><span class="w"> </span><span class="o">${</span><span class="nt">TYPE_ADAPTERS_RECURSIVE</span><span class="o">}</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">63</span>
+<span class="linenos">64</span><span class="w">    </span><span class="nf">string(</span><span class="no">REPLACE</span><span class="w"> </span><span class="s">&quot;;&quot;</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="nb">deps_str</span><span class="w"> </span><span class="s">&quot;${MSG_FILES}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">65</span><span class="w">    </span><span class="nf">string(</span><span class="no">REPLACE</span><span class="w"> </span><span class="s">&quot;;&quot;</span><span class="w"> </span><span class="s">&quot; &quot;</span><span class="w"> </span><span class="nb">deps_str</span><span class="w"> </span><span class="s">&quot;${TYPE_ADAPTERS}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">66</span>
+<span class="linenos">67</span><span class="w">    </span><span class="nf">add_custom_target(</span><span class="o">${</span><span class="nt">TARGET_NAME</span><span class="o">}</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">68</span>
+<span class="linenos">69</span><span class="w">    </span><span class="nf">set(</span><span class="no">MSG_GEN_MSG_FILES</span><span class="w"> </span><span class="s">&quot;${MSG_FILES}&quot;</span><span class="w"> </span><span class="no">PARENT_SCOPE</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">70</span><span class="w">    </span><span class="nf">set(</span><span class="no">MSG_GEN_MSG_TYPE_ADAPTERS</span><span class="w"> </span><span class="s">&quot;${TYPE_ADAPTERS}&quot;</span><span class="w"> </span><span class="no">PARENT_SCOPE</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">71</span><span class="nf">endfunction()</span><span class="w"></span>
+<span class="linenos">72</span>
+<span class="linenos">73</span><span class="nf">macro(</span><span class="nb">convert_to_ros_msg</span><span class="w"> </span><span class="no">TARGET_NAME</span><span class="w"> </span><span class="no">FILE</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">74</span>
+<span class="linenos">75</span><span class="w">    </span><span class="nf">convert_to_ros_msg_helper(</span><span class="o">${</span><span class="nt">TARGET_NAME</span><span class="o">}</span><span class="w"> </span><span class="o">${</span><span class="nt">FILE</span><span class="o">}</span><span class="w"> </span><span class="o">${</span><span class="nt">ARGV</span><span class="o">}</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">76</span>
+<span class="linenos">77</span><span class="w">    </span><span class="nf">message(</span><span class="s">&quot;PROJECT_NAME: ${PROJECT_NAME}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">78</span><span class="w">    </span><span class="nf">message(</span><span class="s">&quot;MSG_FILES: ${MSG_GEN_MSG_FILES}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">79</span><span class="w">    </span><span class="nf">message(</span><span class="s">&quot;TYPE_ADAPTER(S): ${TYPE_ADAPTERS}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">80</span><span class="w">    </span><span class="nf">message(</span><span class="s">&quot;PKG_DEPENDENCIES: ${MSG_GEN_PKG_DEPENDENCIES}&quot;</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">81</span>
+<span class="linenos">82</span><span class="w">    </span><span class="nf">rosidl_generate_interfaces(</span><span class="o">${</span><span class="nt">PROJECT_NAME</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">83</span><span class="w">        </span><span class="o">${</span><span class="nt">MSG_GEN_MSG_FILES</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">84</span><span class="w">        </span><span class="no">DEPENDENCIES</span><span class="w"> </span><span class="o">${</span><span class="nt">MSG_GEN_PKG_DEPENDENCIES</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">85</span><span class="w">    </span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">86</span>
+<span class="linenos">87</span><span class="w">    </span><span class="nf">ament_export_dependencies(</span><span class="nb">rosidl_default_runtime</span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">88</span>
+<span class="linenos">89</span><span class="w">    </span><span class="nf">install(</span><span class="w"></span>
+<span class="linenos">90</span><span class="w">        </span><span class="no">FILES</span><span class="w"> </span><span class="o">${</span><span class="nt">MSG_GEN_MSG_TYPE_ADAPTERS</span><span class="o">}</span><span class="w"></span>
+<span class="linenos">91</span><span class="w">        </span><span class="no">DESTINATION</span><span class="w"> </span><span class="na">include/</span><span class="o">${</span><span class="nt">PROJECT_NAME</span><span class="o">}</span><span class="na">/</span><span class="o">${</span><span class="nt">PROJECT_NAME</span><span class="o">}</span><span class="na">/type_adapters</span><span class="w"></span>
+<span class="linenos">92</span><span class="w">    </span><span class="nf">)</span><span class="w"></span>
+<span class="linenos">93</span>
+<span class="linenos">94</span><span class="w">    </span><span class="nf">install(</span><span class="w"></span>
+<span class="linenos">95</span><span class="w">        </span><span class="no">FILES</span><span class="w"> </span><span class="o">${</span><span class="nt">FILE</span><span class="o">}</span><span class="w"></span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stm_converter_templates.html" class="btn btn-neutral float-left" title="STM Converter Templates" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, himaj joshi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

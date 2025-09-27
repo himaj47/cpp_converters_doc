@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>stm_converter.generator &mdash; CPP structs to ROS msg generator 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> CPP structs to ROS msg generator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">STM Converter</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CPP structs to ROS msg generator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>stm_converter.generator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for stm_converter.generator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;ROS2 Message and type adapter generator.</span>
+
+<span class="sd">This module uses Jinja2 templates to generate:</span>
+<span class="sd">    - `msg` files from parsed message specifications.</span>
+<span class="sd">    - Type adapter C++ header files for custom message integration.</span>
+
+<span class="sd">It transforms C++ struct definitions into ROS 2 message definitions and supporting adapter code.</span>
+<span class="sd">&quot;&quot;&quot;</span> 
+
+<span class="kn">from</span> <span class="nn">jinja2</span> <span class="kn">import</span> <span class="n">Environment</span><span class="p">,</span> <span class="n">FileSystemLoader</span>
+
+<span class="kn">from</span> <span class="nn">ament_index_python.packages</span> <span class="kn">import</span> <span class="n">get_package_share_directory</span>
+<span class="kn">import</span> <span class="nn">ros2interface.api</span> <span class="k">as</span> <span class="nn">interface</span>
+
+<span class="kn">from</span> <span class="nn">rosidl_adapter.parser</span> <span class="kn">import</span> <span class="n">MessageSpecification</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">os</span> 
+
+<span class="kn">from</span> <span class="nn">stm_converter.utils</span> <span class="kn">import</span> <span class="n">get_msg_fields</span>
+<span class="kn">from</span> <span class="nn">stm_converter.utils</span> <span class="kn">import</span> <span class="n">MESSAGE_FILE_EXTENSION</span><span class="p">,</span> <span class="n">PRIMITIVE_TYPES</span>
+
+
+<div class="viewcode-block" id="check_for_extras"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.generator.check_for_extras">[docs]</a><span class="k">def</span> <span class="nf">check_for_extras</span><span class="p">(</span><span class="n">msg_content</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">template_env</span><span class="p">:</span> <span class="n">Environment</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Verifies whether the target message contains any non-primitive types, and if it does, returns the necessary header include lines.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ``msg_content``: message information</span>
+<span class="sd">        ``template_env``: Jinja template environment to get templates</span>
+<span class="sd">        ``file_path``: Path to registry</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``tuple[str,dict]``: template rendered string (include headers lines), message properties (namespace, struct name)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">extras</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">template_env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;extras.txt&quot;</span><span class="p">)</span>
+    <span class="n">extras_properties</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">properties</span> <span class="ow">in</span> <span class="n">msg_content</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">properties</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">:</span> <span class="c1"># update the index </span>
+
+            <span class="c1"># find msg description in registry</span>
+            <span class="n">non_primitive</span> <span class="o">=</span> <span class="n">properties</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># msg name</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;registry is empty!!&quot;</span><span class="p">)</span>
+                
+                <span class="k">try</span><span class="p">:</span> 
+                    <span class="n">header</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">non_primitive</span><span class="p">][</span><span class="s2">&quot;header&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_type_adapter.hpp&quot;</span>
+                    <span class="n">package</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">non_primitive</span><span class="p">][</span><span class="s2">&quot;package&quot;</span><span class="p">]</span>
+
+                    <span class="c1"># mapping of msg name to its namespace and struct name</span>
+                    <span class="n">temp</span> <span class="o">=</span> <span class="p">{</span><span class="n">non_primitive</span><span class="p">:</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">non_primitive</span><span class="p">][</span><span class="s2">&quot;namespace&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">non_primitive</span><span class="p">][</span><span class="s2">&quot;struct_name&quot;</span><span class="p">]]}</span>
+                    <span class="n">extras_properties</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+
+                    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="n">header</span><span class="p">,</span>
+                               <span class="s2">&quot;pkg&quot;</span><span class="p">:</span> <span class="n">package</span><span class="p">}</span>
+                    
+                    <span class="n">extras</span> <span class="o">+=</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;msg description for </span><span class="si">{</span><span class="n">non_primitive</span><span class="si">}</span><span class="s2"> does not exists in the registry!!&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">extras</span><span class="p">,</span> <span class="n">extras_properties</span></div>
+
+
+<div class="viewcode-block" id="Generator"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.generator.Generator">[docs]</a><span class="k">class</span> <span class="nc">Generator</span><span class="p">:</span> 
+    <span class="sd">&quot;&quot;&quot;Generates ROS 2 message files and type adapters from parsed C++ structs.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        - ``env_`` (jinja2.Environment): Jinja2 environment for loading templates.</span>
+<span class="sd">        - ``header_name_`` (str): C++ header file name.</span>
+<span class="sd">        - ``ns`` (str): Namespace of the struct.</span>
+<span class="sd">        - ``interface_name`` (str): Target ROS 2 interface name.</span>
+<span class="sd">        - ``msg_content_`` (list[dict]): List of parsed message fields for each message.</span>
+<span class="sd">        - ``msg`` (list[MessageSpecification]): Parsed ROS 2 message specifications.</span>
+<span class="sd">        - ``struct_name`` (list[str]): C++ struct names found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">struct_name</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">MessageSpecification</span><span class="p">,</span> <span class="n">interface_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the generator with message and template configuration.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            - ``struct_name`` (list[str]): Names of C++ structs.</span>
+<span class="sd">            - ``header`` (str): Header file name containing the definitions.</span>
+<span class="sd">            - ``namespace`` (str): Namespace of the C++ definitions.</span>
+<span class="sd">            - ``msg`` (list[MessageSpecification]): Parsed message specifications.</span>
+<span class="sd">            - ``interface_name`` (str): Target ROS 2 interface name for generated files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pathToTemplates</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_package_share_directory</span><span class="p">(</span><span class="s2">&quot;stm_converter&quot;</span><span class="p">),</span> <span class="s2">&quot;resource/templates&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">env_</span> <span class="o">=</span> <span class="n">Environment</span><span class="p">(</span><span class="n">loader</span><span class="o">=</span><span class="n">FileSystemLoader</span><span class="p">(</span><span class="n">pathToTemplates</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">header_name_</span> <span class="o">=</span> <span class="n">header</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ns</span> <span class="o">=</span> <span class="n">namespace</span>
+
+        <span class="c1"># package name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface_name</span> <span class="o">=</span> <span class="n">interface_name</span>
+
+        <span class="c1"># self.msg_filename_ = msg.msg_name </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg_content_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface_type_</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span> <span class="o">=</span> <span class="n">struct_name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">non_primitive_info_</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="Generator.gen_msgs"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.generator.Generator.gen_msgs">[docs]</a>    <span class="k">def</span> <span class="nf">gen_msgs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate `ROS msg` files from parsed message specifications.</span>
+
+<span class="sd">        Uses the `message.txt` Jinja2 template to generate ROS2 msg files</span>
+<span class="sd">        from parsed message field data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            - ``file`` (str): Not currently used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;message.txt&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="s2">&quot;msg&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;file already exists!!&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">msg_content_</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_msg_fields</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+
+            <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;msg&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_content_</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]}</span>
+
+            <span class="c1"># with open(filename, mode=&quot;w&quot;, encoding=&quot;utf-8&quot;) as output:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;msg/&quot;</span> <span class="o">+</span> <span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span> <span class="o">+</span> <span class="n">MESSAGE_FILE_EXTENSION</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Generator.gen_type_adapter"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.generator.Generator.gen_type_adapter">[docs]</a>    <span class="k">def</span> <span class="nf">gen_type_adapter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate C++ type adapter headers for the generated messages.</span>
+
+<span class="sd">        Uses Jinja2 templates to generate type adapters</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            - ``file`` (str): Output directory and prefix for the adapter file names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># path to registry</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/.registry.yaml&quot;</span><span class="p">)</span>
+
+        <span class="c1"># include headers template</span>
+        <span class="n">includes_template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;includes.txt&quot;</span><span class="p">)</span>
+
+        <span class="c1"># helper templates</span>
+        <span class="n">non_array_types</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;non_array_types.txt&quot;</span><span class="p">)</span>
+        <span class="n">non_array_to_ros</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;na_adapter__to_ros.txt&quot;</span><span class="p">)</span>
+        <span class="n">non_array_to_custom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;na_adapter__to_custom.txt&quot;</span><span class="p">)</span>
+
+        <span class="n">loop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;loop.txt&quot;</span><span class="p">)</span>
+        <span class="n">push_back</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;push_back.txt&quot;</span><span class="p">)</span>
+        <span class="n">np_push_back</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;np_push_back.txt&quot;</span><span class="p">)</span>
+
+        <span class="n">to_ros_msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;adapter__to_ros.txt&quot;</span><span class="p">)</span>
+        <span class="n">to_custom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;adapter__to_custom.txt&quot;</span><span class="p">)</span>
+
+        <span class="n">type_adapter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;type_adapter.txt&quot;</span><span class="p">)</span>
+
+
+        <span class="n">include_header_content</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">struct_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># collecting headers info</span>
+        <span class="k">for</span> <span class="n">msg_content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_content_</span><span class="p">:</span> 
+
+            <span class="c1"># check for any extra includes</span>
+            <span class="n">extras</span><span class="p">,</span> <span class="n">extras_properties</span> <span class="o">=</span> <span class="n">check_for_extras</span><span class="p">(</span><span class="n">msg_content</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">env_</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">non_primitive_info_</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">extras_properties</span><span class="p">)</span>
+
+            <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;interface_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface_name</span><span class="p">,</span>
+                       <span class="s2">&quot;struct_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span><span class="p">[</span><span class="n">struct_count</span><span class="p">],</span>
+                       <span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_name_</span><span class="p">,</span>
+                       <span class="s2">&quot;extras&quot;</span><span class="p">:</span> <span class="n">extras</span><span class="p">}</span>
+
+            <span class="n">struct_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">temp</span> <span class="o">=</span> <span class="n">includes_template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+            <span class="n">include_header_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+        
+
+        <span class="c1"># generating full rendered content using helper templates </span>
+        <span class="n">type_adapters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">msg_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">msg_content</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_content_</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">non_primitives__to_ros</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">non_primitives__to_custom</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">msg_content</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+                <span class="c1"># non array primitive types</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">info</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">}</span>
+                    <span class="n">temp</span> <span class="o">=</span> <span class="n">non_array_types</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                <span class="c1"># non array non primitive types</span>
+                <span class="k">elif</span> <span class="ow">not</span> <span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;namespace&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_primitive_info_</span><span class="p">[</span><span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="s2">&quot;struct&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_primitive_info_</span><span class="p">[</span><span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">1</span><span class="p">],</span>
+                               <span class="s2">&quot;pkg&quot;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                               <span class="s2">&quot;msg&quot;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">}</span>
+
+                    <span class="n">non_primitives__to_ros</span> <span class="o">+=</span> <span class="n">non_array_to_ros</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="n">non_primitives__to_custom</span> <span class="o">+=</span> <span class="n">non_array_to_custom</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+                <span class="c1"># array primitive types</span>
+                <span class="k">elif</span> <span class="n">info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">info</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">}</span>
+                    <span class="n">temp</span> <span class="o">=</span> <span class="n">push_back</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+
+                    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span>
+                               <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">temp</span><span class="p">}</span>
+                    <span class="n">temp</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+
+                <span class="c1"># array non primitve types</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;pkg&quot;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                               <span class="s2">&quot;msg&quot;</span><span class="p">:</span> <span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="s2">&quot;namespace&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_primitive_info_</span><span class="p">[</span><span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">],</span>
+                               <span class="s2">&quot;struct&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_primitive_info_</span><span class="p">[</span><span class="n">info</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">1</span><span class="p">],</span>
+                               <span class="p">}</span>
+                    
+                    <span class="n">temp_render</span> <span class="o">=</span> <span class="n">to_ros_msg</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+
+                    <span class="n">push_back_context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">}</span>
+                    <span class="n">temp_push_back</span> <span class="o">=</span> <span class="n">np_push_back</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">push_back_context</span><span class="p">)</span>
+                    <span class="n">temp_render</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">temp_push_back</span>
+
+                    <span class="n">loop_context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;field_name&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">,</span>
+                               <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">temp_render</span><span class="p">}</span>
+                    
+                    <span class="n">temp__to_ros</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">loop_context</span><span class="p">)</span>
+
+
+                    <span class="n">temp_render</span> <span class="o">=</span> <span class="n">to_custom</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+                    <span class="n">temp_render</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">temp_push_back</span>
+
+                    <span class="n">loop_context</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_render</span>
+                    <span class="n">temp__to_custom</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">loop_context</span><span class="p">)</span>
+
+                    <span class="n">non_primitives__to_ros</span> <span class="o">+=</span> <span class="n">temp__to_ros</span>
+                    <span class="n">non_primitives__to_custom</span> <span class="o">+=</span> <span class="n">temp__to_custom</span>
+
+                <span class="n">content</span> <span class="o">+=</span> <span class="n">temp</span>
+            
+            <span class="n">context</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;msg&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">[</span><span class="n">msg_count</span><span class="p">]</span><span class="o">.</span><span class="n">msg_name</span><span class="p">,</span>
+                       <span class="s2">&quot;struct_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span><span class="p">[</span><span class="n">msg_count</span><span class="p">],</span>
+                       <span class="s2">&quot;namespace&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ns</span><span class="p">,</span> <span class="c1"># currently assuming that all structs are under the same namespace</span>
+                       <span class="s2">&quot;interface_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface_name</span><span class="p">,</span>
+                       <span class="s2">&quot;primitives&quot;</span><span class="p">:</span> <span class="n">content</span><span class="p">,</span>
+                       <span class="s2">&quot;to_ros_msg&quot;</span><span class="p">:</span> <span class="n">non_primitives__to_ros</span><span class="p">,</span>
+                       <span class="s2">&quot;to_custom&quot;</span><span class="p">:</span> <span class="n">non_primitives__to_custom</span><span class="p">,</span>
+                       <span class="s2">&quot;includes&quot;</span><span class="p">:</span> <span class="n">include_header_content</span><span class="p">[</span><span class="n">msg_count</span><span class="p">]}</span>
+            
+            <span class="n">full_content</span> <span class="o">=</span> <span class="n">type_adapter</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+            <span class="n">type_adapters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_content</span><span class="p">)</span>
+            <span class="n">msg_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+
+        <span class="c1"># writing the generated content to files</span>
+        <span class="n">msg_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">type_adapters</span><span class="p">:</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span><span class="p">[</span><span class="n">msg_count</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_type_adapter.hpp&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">output</span><span class="p">:</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            
+            <span class="n">msg_count</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="Generator.gen_msg_description"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.generator.Generator.gen_msg_description">[docs]</a>    <span class="k">def</span> <span class="nf">gen_msg_description</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate msg descriptions (YAML) for the generated messages.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            - ``file`` (str): Output directory and prefix for the msg description file names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># create registry if doesn&#39;t exists</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/.registry.yaml&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">({},</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Registry already exists: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># read registry</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># collecting message informations </span>
+        <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="p">{</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">:</span> <span class="p">{}}</span>
+            <span class="n">content</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;package&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface_name</span><span class="p">})</span>
+            <span class="n">content</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;header&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">header_name_</span> <span class="o">+</span> <span class="s1">&#39;.hpp&#39;</span><span class="p">})</span>
+            <span class="n">content</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{}})</span>
+
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">msg</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PRIMITIVE_TYPES</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="n">content</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">][</span><span class="s2">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">type</span><span class="p">})</span>
+            
+            <span class="n">content</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;namespace&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ns</span><span class="p">})</span>
+            <span class="n">content</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">msg_name</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;struct_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">struct_name</span><span class="p">[</span><span class="n">count</span><span class="p">]})</span>
+
+            <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># write it to a file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Generator.check_existance"><a class="viewcode-back" href="../../stm_converter.html#stm_converter.generator.Generator.check_existance">[docs]</a>    <span class="k">def</span> <span class="nf">check_existance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># use find_content_pkg function from xml_parser</span>
+        <span class="sd">&quot;&quot;&quot;Check if the target message types already exist.</span>
+
+<span class="sd">        This checks all interface packages to see if any of the msgs exists</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ``bool``: True if all messages exist, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">is_present</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">pkgs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">interface</span><span class="o">.</span><span class="n">get_interface_packages</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="n">msg_interfaces</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">get_message_interfaces</span><span class="p">(</span><span class="n">pkgs</span><span class="p">)</span> 
+
+        <span class="k">for</span> <span class="n">msg_filename_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">:</span>  
+            <span class="k">for</span> <span class="n">pkg</span><span class="p">,</span> <span class="n">msgs</span> <span class="ow">in</span> <span class="n">msg_interfaces</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="s2">&quot;msg/&quot;</span> <span class="o">+</span> <span class="n">msg_filename_</span><span class="o">.</span><span class="n">msg_name</span> <span class="ow">in</span> <span class="n">msgs</span><span class="p">:</span>
+                    <span class="n">is_present</span> <span class="o">|=</span> <span class="kc">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">interface_type_</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pkg</span><span class="si">}</span><span class="s2">/msg/</span><span class="si">{</span><span class="n">msg_filename_</span><span class="o">.</span><span class="n">msg_name</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_present</span><span class="p">:</span>
+                <span class="n">is_present</span> <span class="o">|=</span> <span class="kc">False</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg_filename_</span><span class="o">.</span><span class="n">msg_name</span><span class="si">}</span><span class="s2">.msg does not exist&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">is_present</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, himaj joshi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
