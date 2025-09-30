@@ -90,15 +90,15 @@ Additional ROS 2 interface packages this message depends on.</p></li>
 <ul class="simple">
 <li><p>A ROS2 <cite>msg</cite> file under <code class="docutils literal notranslate"><span class="pre">msg/</span></code></p></li>
 <li><p>A type adapter header in <code class="docutils literal notranslate"><span class="pre">&lt;build&gt;/type_adapters/</span></code></p></li>
-<li><p>A YAML message description in <code class="docutils literal notranslate"><span class="pre">&lt;build&gt;/msg_descriptions/</span></code></p></li>
+<li><p>Message description (added to the registry)</p></li>
 </ul>
 </li>
 <li><p>Calls <code class="docutils literal notranslate"><span class="pre">rosidl_generate_interfaces()</span></code> with the generated <cite>msg</cite> files.</p></li>
-<li><p>Installs generated type adapters and messages into the package’s <cite>share/</cite> folder.</p></li>
+<li><p>Installs generated type adapters and messages into the package’s <cite>include/</cite> folder.</p></li>
 </ol>
 <p><strong>Example:</strong></p>
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nf">convert_to_ros_msg(</span><span class="w"></span>
-<span class="w">  </span><span class="nb">my_struct_generator</span><span class="w"></span>
+<span class="w">  </span><span class="nb">msg_generator</span><span class="w"></span>
 <span class="w">  </span><span class="na">include/my_pkg/my_struct.hpp</span><span class="w"></span>
 <span class="w">  </span><span class="no">DEPENDENCIES</span><span class="w"> </span><span class="nb">my_custom_interfaces</span><span class="w"></span>
 <span class="nf">)</span><span class="w"></span>
@@ -107,8 +107,26 @@ Additional ROS 2 interface packages this message depends on.</p></li>
 <p>After running <code class="docutils literal notranslate"><span class="pre">colcon</span> <span class="pre">build</span></code>, this will produce:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">msg/MyStruct.msg</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">install/my_pkg/share/my_pkg/type_adapters/MyStruct_type_adapter.hpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">install/my_pkg/include/type_adapters/my_struct_type_adapter.hpp</span></code></p></li>
 </ul>
+<p><strong>Note:</strong></p>
+<ul class="simple">
+<li><p>Make sure to add a namespace.</p></li>
+<li><p>Make sure the struct name is the same as the header file name.</p></li>
+</ul>
+<p>For example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#pragma once</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span><span class="cp"></span>
+
+<span class="k">namespace</span><span class="w"> </span><span class="nn">ns</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">pkg_one_msg</span><span class="w"></span>
+<span class="w">    </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="p">};</span><span class="w"></span>
+</pre></div>
+</div>
 </dd></dl>
 
 <p>Here is the source code for the <code class="docutils literal notranslate"><span class="pre">convert_to_ros_msg</span></code> function:</p>
